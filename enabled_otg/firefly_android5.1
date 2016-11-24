@@ -1,0 +1,245 @@
+前提：烧写firefly android 5.1到M180-V4上
+一、内核修改
+主要工作：dts适配，点亮背光、LCD即可(其他功能暂不做修改)。
+二、烧写固件
+
+android 5.1  系统启动进入shell后，一直卡在启动画面：
+logcat查看输出日志如下：
+
+W/ActivityManagerService(  473): Process ProcessRecord{225328e 1141:com.android.providers.calendar/u0a1} failed to attach
+I/ActivityManagerService(  473): Killing 1141:com.android.providers.calendar/u0a1 (adj -100): start timeout
+W/libprocessgroup(  473): failed to open /acct/uid_10001/pid_1141/cgroup.procs: No such file or directory
+W/ActivityManagerService(  473): Unattached app died before broadcast acknowledged, skipping
+W/ActivityManagerService(  473): Unattached app died before broadcast acknowledged, skipping
+W/Zygote  ( 1147): Storage environment undefined; unable to provide external storage
+W/Zygote  ( 1147): Failed to mount emulated storage: Invalid argument
+E/Zygote  ( 1147): Cannot continue without emulated storage
+F/art     ( 1147): art/runtime/jni_internal.cc:769] JNI FatalError called: RuntimeAbort
+I/ActivityManagerService(  473): Start proc 1147:com.android.providers.calendar/u0a1 for broadcast com.android.providers.calendar/.CalendarUpgradeReceiver
+W/libbacktrace( 1147): virtual bool BacktraceThread::Unwind(size_t, ucontext_t*): tgkill 162 failed: No such process
+W/libbacktrace( 1147): virtual bool BacktraceThread::Unwind(size_t, ucontext_t*): tgkill 162 failed: No such process
+I/art     (  162): Explicit concurrent mark sweep GC freed 706(30KB) AllocSpace objects, 0(0B) LOS objects, 89% free, 124KB/1148KB, paused 132us total 9.645ms
+F/art     ( 1147): art/runtime/runtime.cc:289] Runtime aborting...
+F/art     ( 1147): art/runtime/runtime.cc:289] Aborting thread:
+F/art     ( 1147): art/runtime/runtime.cc:289] "main" prio=5 tid=1 Native
+F/art     ( 1147): art/runtime/runtime.cc:289]   | group="" sCount=0 dsCount=0 obj=0x73a0c180 self=0xb81d6300
+F/art     ( 1147): art/runtime/runtime.cc:289]   | sysTid=162 nice=0 cgrp=default sched=0/0 handle=0xb6fe2bec
+F/art     ( 1147): art/runtime/runtime.cc:289]   | state=? schedstat=( 0 0 0 ) utm=0 stm=0 core=0 HZ=100
+F/art     ( 1147): art/runtime/runtime.cc:289]   | stack=0xbe5b4000-0xbe5b6000 stackSize=8MB
+F/art     ( 1147): art/runtime/runtime.cc:289]   | held mutexes= "abort lock" "mutator lock"(shared held)
+F/art     ( 1147): art/runtime/runtime.cc:289]   kernel: (couldn't read /proc/self/task/162/stack)
+F/art     ( 1147): art/runtime/runtime.cc:289]   native: (backtrace::Unwind failed for thread 162)
+F/art     ( 1147): art/runtime/runtime.cc:289]   at com.android.internal.os.Zygote.nativeForkAndSpecialize(Native method)
+F/art     ( 1147): art/runtime/runtime.cc:289]   at com.android.internal.os.Zygote.forkAndSpecialize(Zygote.java:93)
+F/art     ( 1147): art/runtime/runtime.cc:289]   at com.android.internal.os.ZygoteConnection.runOnce(ZygoteConnection.java:246)
+F/art     ( 1147): art/runtime/runtime.cc:289]   at com.android.internal.os.ZygoteInit.runSelectLoop(ZygoteInit.java:848)
+F/art     ( 1147): art/runtime/runtime.cc:289]   at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:754)
+F/art     ( 1147): art/runtime/runtime.cc:289] Dumping all threads without appropriate locks held: thread list lock mutator lock
+F/art     ( 1147): art/runtime/runtime.cc:289] All threads:
+F/art     ( 1147): art/runtime/runtime.cc:289] DALVIK THREADS (1):
+F/art     ( 1147): art/runtime/runtime.cc:289] "main" prio=5 tid=1 Native
+F/art     ( 1147): art/runtime/runtime.cc:289]   | group="" sCount=0 dsCount=0 obj=0x73a0c180 self=0xb81d6300
+F/art     ( 1147): art/runtime/runtime.cc:289]   | sysTid=162 nice=0 cgrp=default sched=0/0 handle=0xb6fe2bec
+F/art     ( 1147): art/runtime/runtime.cc:289]   | state=? schedstat=( 0 0 0 ) utm=0 stm=0 core=0 HZ=100
+F/art     ( 1147): art/runtime/runtime.cc:289]   | stack=0xbe5b4000-0xbe5b6000 stackSize=8MB
+F/art     ( 1147): art/runtime/runtime.cc:289]   | held mutexes= "abort lock"
+F/art     ( 1147): art/runtime/runtime.cc:289]   kernel: (couldn't read /proc/self/task/162/stack)
+F/art     ( 1147): art/runtime/runtime.cc:289]   native: (backtrace::Unwind failed for thread 162)
+F/art     ( 1147): art/runtime/runtime.cc:289]   at com.android.internal.os.Zygote.nativeForkAndSpecialize(Native method)
+F/art     ( 1147): art/runtime/runtime.cc:289]   at com.android.internal.os.Zygote.forkAndSpecialize(Zygote.java:93)
+F/art     ( 1147): art/runtime/runtime.cc:289]   at com.android.internal.os.ZygoteConnection.runOnce(ZygoteConnection.java:246)
+F/art     ( 1147): art/runtime/runtime.cc:289]   at com.android.internal.os.ZygoteInit.runSelectLoop(ZygoteInit.java:848)
+F/art     ( 1147): art/runtime/runtime.cc:289]   at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:754)
+F/art     ( 1147): art/runtime/runtime.cc:289] 
+F/art     ( 1147): art/runtime/runtime.cc:289] 
+F/libc    ( 1147): Fatal signal 6 (SIGABRT), code -6 in tid 1147 (main)
+I/libc    ( 1147): Suppressing debuggerd output because prctl(PR_GET_DUMPABLE)==0
+I/art     (  162): Explicit concurrent mark sweep GC freed 5(160B) AllocSpace objects, 0(0B) LOS objects, 89% free, 124KB/1148KB, paused 141us total 9.198ms
+I/art     (  162): Explicit concurrent mark sweep GC freed 5(160B) AllocSpace objects, 0(0B) LOS objects, 89% free, 124KB/1148KB, paused 135us total 8.978ms
+I/Zygote  (  162): Process 1147 exited due to signal (6)
+
+定位错误到红色处：
+W/Zygote  ( 1147): Storage environment undefined; unable to provide external storage
+W/Zygote  ( 1147): Failed to mount emulated storage: Invalid argument
+E/Zygote  ( 1147): Cannot continue without emulated storage
+
+错误代码位于<source_android>/frameworks/base/core/jni/com_android_internal_os_Zygote.cpp中：
+if (!MountEmulatedStorage(uid, mount_external, use_native_bridge)) {
+       ALOGW("Failed to mount emulated storage: %s", strerror(errno));                                                                                                                        
+       if (errno == ENOTCONN || errno == EROFS) {
+         // When device is actively encrypting, we get ENOTCONN here
+         // since FUSE was mounted before the framework restarted.
+         // When encrypted device is booting, we get EROFS since
+         // FUSE hasn't been created yet by init.
+         // In either case, continue without external storage.
+       } else {
+         ALOGE("Cannot continue without emulated storage");
+         RuntimeAbort(env);
+       }
+
+
+经过分析可知，出错原因在于调用MountEmulatedStorage()函数后：
+if (mount_mode == MOUNT_EXTERNAL_MULTIUSER || mount_mode == MOUNT_EXTERNAL_MULTIUSER_ALL) {
+     // These paths must already be created by init.rc
+     const char* source = getenv("EMULATED_STORAGE_SOURCE");
+     const char* target = getenv("EMULATED_STORAGE_TARGET");
+     const char* legacy = getenv("EXTERNAL_STORAGE");
+     if (source == NULL || target == NULL || legacy == NULL) {
+			ALOGW("Storage environment undefined; unable to provide external storage");
+			return false;		
+	   }
+		....
+}
+需要获取这几个变量：EMULATED_STORAGE_SOURCE、EMULATED_STORAGE_TARGET、EXTERNAL_STORAGE，由于获取失败为NULL，返回false
+之后再判断error类型是否为ENOTCONN或者EROFS，由错误log得知：errno为：#define EINVAL 22 /* Invalid argument */，因此执行else分支，调用RuntimeAbort(env);
+#define EROFS 30 /* Read-only file system */
+#define EISCONN 106 /* Transport endpoint is already connected */
+有关errno全局变量的用法，可参考：http://blog.csdn.net/tigerjibo/article/details/6819891
+
+
+
+经过一番查找，在init.rk30board.environment.rc中查到这些变量：
+
+on init                                                                                                                                                                                      
+	export EXTERNAL_STORAGE /mnt/internal_sd
+	export EXTERNAL_STORAGE_FLASH /mnt/internal_sd
+	export EMULATED_STORAGE_SOURCE /mnt/internal_sd
+	
+刚开始粗心大意，看到有这几个变量后没太注意变量名，以为缺失的三个都有了，重烧固件后还是卡在启动画面，后来仔细查看init.rc,
+才发现其中没有EMULATED_STORAGE_TARGET这个变量，这也是我在android shell中使用echo $EMULATED_STORAGE_SOURCE三个变量后只有
+EMULATED_STORAGE_TARGET是空才想到的。
+
+因此，修改init.rk30board.environment.rc如下：
+on init                                                                                                                                                                                      
+	export EXTERNAL_STORAGE /mnt/internal_sd
+	export EXTERNAL_STORAGE_FLASH /mnt/internal_sd
+	export EMULATED_STORAGE_SOURCE /mnt/internal_sd
+	export EMULATED_STORAGE_TARGET /mnt/internal_sd
+
+
+	
+经过以上步骤，成功进入系统。但是又发现资源管理器没法用，闪退，随后又想到可能是不能识别内置存储吧。
+又扯出来几个东西：
+ro.factory.hasUMS属性  
+查找代码，在device/rockchip/commom/下,device.mk中:
+########################################################
+# build with UMS? CDROM?
+########################################################
+ifeq ($(strip $(BUILD_WITH_UMS)),true)
+ PRODUCT_PROPERTY_OVERRIDES +=               \
+     ro.factory.hasUMS=true                  \
+     persist.sys.usb.config=mass_storage,adb \
+     testing.mediascanner.skiplist = /mnt/internal_sd/Android/
+ 
+ PRODUCT_COPY_FILES += \
+     $(LOCAL_PATH)/init.rockchip.hasUMS.true.rc:root/init.$(TARGET_BOARD_HARDWARE).environment.rc
+ else
+ ifeq ($(strip $(BUILD_WITH_CDROM)),true)
+ PRODUCT_PROPERTY_OVERRIDES +=                 \
+     ro.factory.hasUMS=cdrom                   \
+     ro.factory.cdrom=$(BUILD_WITH_CDROM_PATH) \
+     persist.sys.usb.config=mass_storage,adb 
+ 
+ PRODUCT_COPY_FILES += \                                                                                                                                                                      
+     $(LOCAL_PATH)/init.rockchip.hasCDROM.true.rc:root/init.$(TARGET_BOARD_HARDWARE).environment.rc
+ else
+ PRODUCT_PROPERTY_OVERRIDES +=       \
+     ro.factory.hasUMS=false         \
+     persist.sys.usb.config=mtp,adb  \
+     testing.mediascanner.skiplist = /mnt/shell/emulated/Android/
+ 
+ PRODUCT_COPY_FILES += \
+     $(LOCAL_PATH)/init.rockchip.hasUMS.false.rc:root/init.$(TARGET_BOARD_HARDWARE).environment.rc
+ endif
+ endif
+以上代码就是判断ro.factory.hasUMS这个属性，最后选择不同的init.rk30board.environment.rc,而最开始代码中ro.factory.hasUMS=false，因此
+导入的是init.rockchip.hasUMS.false.rc：
+on init                                                                                                                                                                                      
+     export EXTERNAL_STORAGE /storage/emulated/legacy
+     export EMULATED_STORAGE_SOURCE /mnt/shell/emulated
+     export EMULATED_STORAGE_TARGET /storage/emulated
+     export EXTERNAL_STORAGE_FLASH /mnt/internal_sd
+
+ro.factory.hasUMS的属性设置是在BoardConfig.mk中第232行：BUILD_WITH_UMS ?= true
+	 
+简单来说就是：
+BUILD_WITH_UMS ?= true   ---> ro.factory.hasUMS=true,persist.sys.usb.config=mass_storage,adb,init.rockchip.hasUMS.true.rc    <---  没有EMULATED_STORAGE_TARGET
+BUILD_WITH_UMS ?= false  ---> ro.factory.hasUMS=false,persist.sys.usb.config=mtp,adb,init.rockchip.hasUMS.false.rc           <---  有EMULATED_STORAGE_TARGET
+
+
+猜测：BUILD_WITH_UMS ?= false时，init.rk30board.environment.rc中没有EMULATED_STORAGE_TARGET变量会不开机？？
+验证结果：BUILD_WITH_UMS ?= true不能启动，为false时，无EMULATED_STORAGE_TARGET变量也不能启动
+
+
+存储空间不正确。
+
+OTG打开失败
+正确的log打开OTG功能时：
+shell@rk3288:/ $ [  201.911471] force_usb_mode_store 1->2
+[  201.911618] PortPower off
+[  201.911698] rk_battery_charger_detect_cb , battery_charger_detect 6
+[  202.109698] Using Buffer DMA mode
+[  202.109777] Periodic Transfer Interrupt Enhancement - disabled
+[  202.109825] Multiprocessor Interrupt Enhancement - disabled
+[  202.109868] OTG VER PARAM: 0, OTG VER FLAG: 0
+[  202.109905] ^^^^^^^^^^^^^^^^^Device Mode
+[  202.398008] ***************vbus detect*****************
+[  202.400355] rk_battery_charger_detect_cb , battery_charger_detect 1
+[  202.577923] Using Buffer DMA mode
+[  202.577943] Periodic Transfer Interrupt Enhancement - disabled
+[  202.577951] Multiprocessor Interrupt Enhancement - disabled
+[  202.577960] OTG VER PARAM: 0, OTG VER FLAG: 0
+[  202.577967] ^^^^^^^^^^^^^^^^^Device Mode
+[  202.578014] *******************soft connect!!!*******************
+[  202.677472] USB RESET
+[  202.765111] android_work: sent uevent USB_STATE=CONNECTED
+[  202.888259] android_usb gadget: high-speed config #1: android
+
+442.514877] type=1400 audit(1479960133.440:285): avc: denied { write } for pid=4429 
+comm="Thread-122" name="force_usb_mode" dev="sysfs" ino=12076 scontext=u:r:system_app:s0
+tcontext=u:object_r:sysfs:s0 tclass=file permissive=0
+
+通过写命令：ehco 2 > /sys/bus/platform/drivers/usb20_otg/force_usb_mode强制切换OTG控制器功能
+	force_usb_mode的值为：	0	depends on USB ID
+							1	force HOST
+							2	force device
+USB参考文档可参考<RK-USB-Application-Note-V2.1>
+由此分析得知，可能是在系统界面打开“连接到PC”选项时，写值失败导致的，而失败的原因就是因为上层没有相应的SElinux权限来操作/sys/bus/platform/drivers/usb20_otg/force_usb_mode
+这个节点。通过查找SEandroid相关的文档，参考博客：http://blog.csdn.net/u014341735/article/details/51244258
+根据博客修改添加sysfs后，经过试验，还是报同样的错误。
+
+在串口终端输入命令：
+cd  /sys/bus/platform/drivers/usb20_otg
+ls -l
+--w------- root     root         4096 2016-11-24 09:12 bind
+-rw-r--r-- root     root         4096 2016-11-24 09:12 debuglevel
+-rw-r--r-- root     root         4096 2016-11-24 09:12 dwc_otg_conn_en
+lrwxrwxrwx root     root              2016-11-24 09:12 ff580000.usb -> ../../../../devices/ff580000.usb
+-rw-rw-r-- system   system       4096 2016-11-24 09:09 force_usb_mode
+-r--r--r-- root     root         4096 2016-11-24 09:12 op_state
+--w------- root     root         4096 2016-11-24 09:12 uevent
+--w------- root     root         4096 2016-11-24 09:12 unbind
+-r--r--r-- root     root         4096 2016-11-24 09:12 vbus_status
+-r--r--r-- root     root         4096 2016-11-24 09:12 version
+为什么只有force_usb_mode节点的权限是system呢？
+知识点一：android用户组
+更改用户组还是错误。
+又回到SEandroid权限这块。
+参考博客：http://blog.csdn.net/yelangjueqi/article/details/46761987    在device/rockchip/commom/sepolicy下添加sysfs_work_otg，最终测试：OTG打开成功。
+
+正确的权限文件应该为：ll  -Z
+--w------- root     root              u:object_r:sysfs:s0 bind
+-rw-r--r-- root     root              u:object_r:sysfs:s0 debuglevel
+-rw-r--r-- root     root              u:object_r:sysfs:s0 dwc_otg_conn_en
+lrwxrwxrwx root     root              u:object_r:sysfs:s0 ff580000.usb -> ../../../../devices/ff580000.usb
+-rw-r--r-- system   system            u:object_r:sysfs:s0 force_usb_mode
+-r--r--r-- root     root              u:object_r:sysfs:s0 op_state
+--w------- root     root              u:object_r:sysfs:s0 uevent
+--w------- root     root              u:object_r:sysfs:s0 unbind
+-r--r--r-- root     root              u:object_r:sysfs:s0 vbus_status
+-r--r--r-- root     root              u:object_r:sysfs:s0 version
+
+MTP与MSC模式：
+MTP：媒体设备(MTP)
+MSC:大容量存储设备
+相机(PTP):
